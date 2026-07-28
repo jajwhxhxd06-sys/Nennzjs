@@ -3,38 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWILL · Meta Studio</title>
+    <title>SWILL · Mega Extractor</title>
     <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/exifr.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:#0b0e14; font-family:'Segoe UI',system-ui,sans-serif; padding:20px; color:#d6e5f5; }
-        .container { max-width:1200px; margin:0 auto; background:#1a1f2a; border-radius:28px; padding:35px 40px; border:1px solid #2e3748; }
-        h1 { color:#b9e2fa; font-weight:300; font-size:2.2rem; display:flex; align-items:center; gap:12px; }
+        .container { max-width:1400px; margin:0 auto; background:#1a1f2a; border-radius:28px; padding:35px 40px; border:1px solid #2e3748; }
+        h1 { color:#b9e2fa; font-weight:300; font-size:2.2rem; }
         .sub { color:#7b8ba3; margin:4px 0 25px 0; border-left:3px solid #3b8cbf; padding-left:16px; }
-        .grid2 { display:grid; grid-template-columns:1fr 1.2fr; gap:30px; }
-        @media(max-width:900px){ .grid2 { grid-template-columns:1fr; } }
-
         .upload-area { border:2px dashed #3b4a5e; border-radius:20px; padding:30px 20px; text-align:center; cursor:pointer; transition:0.25s; background:#11161f; margin-bottom:20px; }
         .upload-area:hover { border-color:#5f8fc9; background:#171f2b; }
         .upload-area input { display:none; }
-        .upload-area .icon { font-size:3.2rem; }
-        .file-name { color:#b0c4de; margin-top:6px; }
-        .preview-img { max-width:100%; max-height:350px; border-radius:16px; border:1px solid #2e3c4f; display:none; margin:10px 0; }
-
-        .meta-box { background:#0d121b; border-radius:18px; padding:18px; border:1px solid #293544; max-height:500px; overflow-y:auto; font-family:'JetBrains Mono',monospace; font-size:0.8rem; white-space:pre-wrap; word-break:break-all; line-height:1.6; }
+        .preview-img { max-width:100%; max-height:400px; border-radius:16px; border:1px solid #2e3c4f; display:none; margin:15px 0; }
+        .grid2 { display:grid; grid-template-columns:1fr 1.2fr; gap:30px; }
+        @media(max-width:900px){ .grid2 { grid-template-columns:1fr; } }
+        .meta-box { background:#0d121b; border-radius:18px; padding:18px; border:1px solid #293544; max-height:600px; overflow-y:auto; font-family:'JetBrains Mono',monospace; font-size:0.75rem; white-space:pre-wrap; word-break:break-all; line-height:1.5; }
         .meta-box .tag { color:#8ab3e0; }
         .meta-box .value { color:#e2c08d; }
-
-        .field { margin-bottom:14px; }
-        label { display:block; margin-bottom:4px; color:#b0c4de; font-weight:500; font-size:0.9rem; }
-        input, textarea { width:100%; padding:10px 14px; border-radius:10px; border:1px solid #2e3f55; background:#0d121b; color:#e8f0fa; font-size:0.95rem; outline:none; }
-        input:focus, textarea:focus { border-color:#5f8fc9; }
-        textarea { resize:vertical; min-height:50px; font-family:inherit; }
-        .row2 { display:flex; gap:14px; flex-wrap:wrap; }
-        .row2 .field { flex:1; min-width:140px; }
-
-        .btn-group { display:flex; gap:12px; flex-wrap:wrap; margin-top:18px; }
-        .btn { background:#2b3a4e; border:none; color:white; padding:12px 28px; border-radius:40px; font-weight:500; font-size:0.95rem; cursor:pointer; border:1px solid #3e516a; transition:0.2s; }
+        .meta-box .section { color:#7ec8a0; font-weight:bold; margin-top:6px; display:block; }
+        .stats { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:10px; color:#8fa3c0; font-size:0.85rem; }
+        .stats span { background:#1b2330; padding:4px 16px; border-radius:40px; border:1px solid #2e3f55; }
+        .btn-group { display:flex; gap:12px; flex-wrap:wrap; margin-top:16px; }
+        .btn { background:#2b3a4e; border:none; color:white; padding:10px 24px; border-radius:40px; font-weight:500; font-size:0.9rem; cursor:pointer; border:1px solid #3e516a; transition:0.2s; }
         .btn-primary { background:#1f6da9; border-color:#3d8fd6; }
         .btn-primary:hover { background:#2a7fc2; }
         .btn-success { background:#1f7a4a; border-color:#2aa86a; }
@@ -45,504 +36,403 @@
         .btn-warning:hover { background:#c08f32; }
         .btn-purple { background:#5e3a7a; border-color:#7e4fa3; }
         .btn-purple:hover { background:#724a92; }
-
-        .status { margin-top:16px; padding:14px; border-radius:12px; background:#0d121b; border:1px solid #293544; font-family:monospace; font-size:0.85rem; white-space:pre-wrap; }
-        .badge { display:inline-block; background:#1b2330; padding:2px 14px; border-radius:30px; border:1px solid #2e3f55; font-size:0.75rem; color:#8fa3c0; margin-right:8px; }
+        .status { margin-top:14px; padding:14px; border-radius:12px; background:#0d121b; border:1px solid #293544; font-family:monospace; font-size:0.8rem; white-space:pre-wrap; }
+        .badge { display:inline-block; background:#1b2330; padding:2px 14px; border-radius:30px; border:1px solid #2e3f55; font-size:0.7rem; color:#8fa3c0; margin-right:8px; }
         .flex { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-        .json-upload-area { border:1px dashed #5e4a7a; border-radius:12px; padding:10px 16px; text-align:center; cursor:pointer; background:#0f0a1a; transition:0.2s; margin-top:8px; }
-        .json-upload-area:hover { border-color:#8a6ab0; background:#150f22; }
-        .json-upload-area input { display:none; }
         ::-webkit-scrollbar { width:5px; }
         ::-webkit-scrollbar-track { background:#131b25; }
         ::-webkit-scrollbar-thumb { background:#3f5777; border-radius:10px; }
+        .copy-hint { color:#5f7f9f; font-size:0.7rem; margin-top:4px; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="flex">
-        <h1>⬡ SWILL · Meta Studio</h1>
-        <span class="badge">Reader + Writer + JSON Import</span>
+        <h1>⬡ SWILL · Mega Extractor</h1>
+        <span class="badge">Все мета + хеши + LSB + строки</span>
     </div>
-    <div class="sub">Загрузи фото → мета → редактируй → скачай. Или загрузи JSON с мета.</div>
+    <div class="sub">Загрузи фото — получи всё, что можно вытащить: EXIF, IPTC, XMP, скрытые строки, хеши, LSB-аномалии, гистограмму.</div>
 
     <div class="upload-area" id="dropZone">
-        <div class="icon">🖼️</div>
-        <p><strong>Кликни или перетащи фото</strong></p>
-        <p style="font-size:0.85rem;color:#687b95;">JPG, JPEG, PNG</p>
+        <div style="font-size:3rem;">📂</div>
+        <p><strong>Кликни или перетащи файл</strong></p>
+        <p style="font-size:0.85rem;color:#687b95;">JPG, PNG, GIF, WebP, TIFF, BMP</p>
         <p class="file-name" id="fileName">Файл не выбран</p>
-        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png">
-    </div>
-
-    <!-- JSON загрузка -->
-    <div class="json-upload-area" id="jsonDropZone">
-        <span style="font-size:1.2rem;">📂</span>
-        <strong>Загрузить JSON с метаданными</strong>
-        <span style="color:#7b8ba3;font-size:0.85rem;display:block;">(экспортированный из этого же сайта или любой совместимый)</span>
-        <input type="file" id="jsonInput" accept=".json">
+        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.tiff,.tif,.bmp">
     </div>
 
     <div class="grid2">
         <div>
             <img id="previewImg" class="preview-img" src="" alt="preview">
-            <div class="flex" style="margin-bottom:10px;gap:10px;">
-                <span id="statsBar" style="color:#8fa3c0;font-size:0.85rem;"></span>
-            </div>
+            <div class="stats" id="statsBar"></div>
             <div class="meta-box" id="metaOutput">⏳ Ожидание загрузки...</div>
-            <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
-                <button class="btn btn-primary" id="copyBtn">📋 Копировать JSON</button>
-                <button class="btn btn-warning" id="refreshBtn">🔄 Обновить мета</button>
-                <button class="btn btn-danger" id="clearBtn">✕ Очистить всё</button>
+            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-primary" id="copyBtn">📋 Копировать всё</button>
+                <button class="btn btn-success" id="downloadJsonBtn">⬇ Скачать JSON</button>
+                <button class="btn btn-danger" id="clearBtn">✕ Очистить</button>
             </div>
         </div>
-
         <div>
-            <h3 style="color:#b9e2fa;font-weight:300;margin-bottom:14px;">✎ Редактор метаданных</h3>
-            <div class="field"><label>📌 Title (заголовок)</label><input id="fTitle" placeholder="Название"></div>
-            <div class="field"><label>👤 Author (автор)</label><input id="fAuthor" placeholder="Имя"></div>
-            <div class="field"><label>📝 Description (описание)</label><textarea id="fDesc" placeholder="Описание"></textarea></div>
-            <div class="row2">
-                <div class="field"><label>© Copyright</label><input id="fCopyright" placeholder="2026 SWILL"></div>
-                <div class="field"><label>🏷️ Keywords (через запятую)</label><input id="fKeywords" placeholder="тест, фото"></div>
+            <h3 style="color:#b9e2fa;font-weight:300;margin-bottom:14px;">🔍 Дополнительный анализ</h3>
+            <div class="stats" id="extraStats"></div>
+            <div class="meta-box" id="extraOutput" style="max-height:400px;">Здесь будут хеши, LSB, строки...</div>
+            <div style="margin-top:12px;">
+                <button class="btn btn-warning" id="refreshBtn">🔄 Обновить анализ</button>
+                <button class="btn btn-purple" id="copyExtraBtn">📋 Копировать анализ</button>
             </div>
-            <div class="field"><label>💬 Comment</label><textarea id="fComment" placeholder="Комментарий"></textarea></div>
-            <div class="field"><label>📅 Creation Date (YYYY:MM:DD HH:MM:SS)</label><input id="fDate" placeholder="2026:07:29 14:30:00"></div>
-
-            <div class="btn-group">
-                <button class="btn btn-success" id="writeBtn">✏️ Записать мета и скачать</button>
-                <button class="btn btn-primary" id="fillFromMetaBtn">📥 Заполнить из мета</button>
-                <button class="btn btn-purple" id="exportJsonBtn">📤 Экспорт JSON</button>
-            </div>
-            <div id="status" class="status">Готов к работе.</div>
+            <div id="status" class="status">Готов.</div>
         </div>
     </div>
 </div>
 
 <script>
-(function() {
-    // ======== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========
+(function(){
     let currentFile = null;
     let currentDataUrl = null;
     let currentMeta = null;
-    let lastExt = 'jpg';
+    let currentExtra = null;
+    let currentHash = null;
+    let currentStrings = [];
+    let currentLsbScore = 0;
 
-    // ======== DOM ========
+    // DOM
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-    const jsonDropZone = document.getElementById('jsonDropZone');
-    const jsonInput = document.getElementById('jsonInput');
     const fileName = document.getElementById('fileName');
     const previewImg = document.getElementById('previewImg');
     const metaOutput = document.getElementById('metaOutput');
+    const extraOutput = document.getElementById('extraOutput');
     const statsBar = document.getElementById('statsBar');
+    const extraStats = document.getElementById('extraStats');
     const statusDiv = document.getElementById('status');
     const copyBtn = document.getElementById('copyBtn');
+    const copyExtraBtn = document.getElementById('copyExtraBtn');
+    const downloadJsonBtn = document.getElementById('downloadJsonBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     const clearBtn = document.getElementById('clearBtn');
-    const writeBtn = document.getElementById('writeBtn');
-    const fillFromMetaBtn = document.getElementById('fillFromMetaBtn');
-    const exportJsonBtn = document.getElementById('exportJsonBtn');
 
-    const fTitle = document.getElementById('fTitle');
-    const fAuthor = document.getElementById('fAuthor');
-    const fDesc = document.getElementById('fDesc');
-    const fCopyright = document.getElementById('fCopyright');
-    const fKeywords = document.getElementById('fKeywords');
-    const fComment = document.getElementById('fComment');
-    const fDate = document.getElementById('fDate');
+    // Загрузка
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('click', (e) => e.stopPropagation());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor='#7aa9e6'; });
+    dropZone.addEventListener('dragleave', () => dropZone.style.borderColor='#3b4a5e');
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.style.borderColor='#3b4a5e'; if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', (e) => { if(this.files && this.files.length) handleFile(this.files[0]); this.value=''; });
 
-    // ======== ЗАГРУЗКА ФОТО ========
-    dropZone.addEventListener('click', function(e) {
-        e.stopPropagation();
-        fileInput.click();
-    });
-    fileInput.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-    dropZone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        dropZone.style.borderColor = '#7aa9e6';
-    });
-    dropZone.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        dropZone.style.borderColor = '#3b4a5e';
-    });
-    dropZone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        dropZone.style.borderColor = '#3b4a5e';
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            handleFile(e.dataTransfer.files[0]);
-        }
-    });
-    fileInput.addEventListener('change', function(e) {
-        if (this.files && this.files.length > 0) {
-            handleFile(this.files[0]);
-        }
-        this.value = '';
-    });
-
-    // ======== ЗАГРУЗКА JSON ========
-    jsonDropZone.addEventListener('click', function(e) {
-        e.stopPropagation();
-        jsonInput.click();
-    });
-    jsonInput.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-    jsonInput.addEventListener('change', function(e) {
-        if (this.files && this.files.length > 0) {
-            const file = this.files[0];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    // Заполняем форму из JSON
-                    if (data.Title) fTitle.value = data.Title;
-                    if (data.Author || data.Artist) fAuthor.value = data.Author || data.Artist;
-                    if (data.Description) fDesc.value = data.Description;
-                    if (data.Copyright) fCopyright.value = data.Copyright;
-                    if (data.Keywords) fKeywords.value = data.Keywords;
-                    if (data.Comment) fComment.value = data.Comment;
-                    if (data.CreateDate || data.DateTime || data.CreationDate) {
-                        const d = data.CreateDate || data.DateTime || data.CreationDate;
-                        fDate.value = d.toString().replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
-                    }
-                    statusDiv.textContent = '✅ JSON загружен! Поля заполнены. Теперь загрузи фото и скачай с мета.';
-                    // Показываем мета в блоке
-                    metaOutput.innerHTML = '📂 Загружен JSON:\n' + JSON.stringify(data, null, 2);
-                    currentMeta = data;
-                } catch(err) {
-                    statusDiv.textContent = '❌ Ошибка парсинга JSON: ' + err.message;
-                }
-            };
-            reader.readAsText(file);
-        }
-        this.value = '';
-    });
-
-    // ======== ОБРАБОТКА ФАЙЛА ФОТО ========
     function handleFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
-        if (!['jpg','jpeg','png'].includes(ext)) {
-            statusDiv.textContent = '❌ Только JPG/JPEG/PNG';
-            return;
-        }
-        lastExt = ext;
+        const valid = ['jpg','jpeg','png','gif','webp','tiff','tif','bmp'];
+        if(!valid.includes(ext)) { statusDiv.textContent='❌ Формат не поддерживается'; return; }
         currentFile = file;
         fileName.textContent = '📄 ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (e) => {
             currentDataUrl = e.target.result;
             previewImg.src = currentDataUrl;
             previewImg.style.display = 'block';
-            statusDiv.textContent = '✅ Загружено. Читаю метаданные...';
-            readMeta(file);
-        };
-        reader.onerror = function() {
-            statusDiv.textContent = '❌ Ошибка чтения файла';
+            statusDiv.textContent = '⏳ Анализ...';
+            extractEverything(file);
         };
         reader.readAsDataURL(file);
     }
 
-    // ======== ЧТЕНИЕ МЕТАДАННЫХ ========
-    function readMeta(file) {
-        const options = {
-            mergeOutput: true,
-            translateKeys: true,
-            tiff: true, exif: true, iptc: true, xmp: true,
-            png: true,
-            pick: ['*']
-        };
-        exifr.parse(file, options)
-            .then(function(meta) {
-                if (!meta || Object.keys(meta).length === 0) {
-                    return readPngTextChunks(file).then(function(chunks) {
-                        if (chunks && Object.keys(chunks).length) {
-                            renderMeta(chunks);
-                        } else {
-                            metaOutput.textContent = '⚠️ Метаданные не найдены';
-                            statsBar.textContent = '📭 Нет данных';
-                            currentMeta = null;
-                        }
-                    });
-                }
-                renderMeta(meta);
-            })
-            .catch(function() {
-                readPngTextChunks(file).then(function(chunks) {
-                    if (chunks && Object.keys(chunks).length) {
-                        renderMeta(chunks);
-                    } else {
-                        metaOutput.textContent = '❌ Не удалось прочитать метаданные';
-                        statsBar.textContent = '⚠️ Ошибка';
-                        currentMeta = null;
+    // ==================== ГЛАВНАЯ ФУНКЦИЯ ====================
+    function extractEverything(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const buffer = e.target.result;
+            const bytes = new Uint8Array(buffer);
+            const view = new DataView(buffer);
+
+            // 1. Метаданные через exifr
+            exifr.parse(file, { mergeOutput: true, translateKeys: true, tiff:true, exif:true, iptc:true, xmp:true, png:true, pick:['*'] })
+                .then(meta => {
+                    if(!meta || Object.keys(meta).length===0) {
+                        // ручной PNG-парсер
+                        return readPngTextChunks(file).then(chunks => {
+                            if(chunks && Object.keys(chunks).length) meta = chunks;
+                            else meta = {};
+                        }).catch(()=>{ meta = {}; });
                     }
+                    return meta;
+                })
+                .then(meta => {
+                    // 2. Базовые параметры
+                    const base = {
+                        'Имя файла': file.name,
+                        'Размер (байт)': file.size,
+                        'Тип MIME': file.type || 'неизвестно',
+                        'Последнее изменение': file.lastModified ? new Date(file.lastModified).toISOString() : '—'
+                    };
+                    // 3. Размеры изображения (если можно)
+                    const img = new Image();
+                    img.onload = function() {
+                        base['Ширина (px)'] = this.width;
+                        base['Высота (px)'] = this.height;
+                        // гистограмма (упрощённо)
+                        const hist = getColorHistogram(this);
+                        if(hist) base['Гистограмма (топ-5 цветов)'] = hist;
+                        finishMeta(meta, base, bytes, view, file);
+                    };
+                    img.onerror = function() {
+                        // если не картинка — пробуем без размеров
+                        finishMeta(meta, base, bytes, view, file);
+                    };
+                    img.src = currentDataUrl;
+                })
+                .catch(err => {
+                    statusDiv.textContent = '❌ Ошибка: ' + err.message;
                 });
-            });
+        };
+        reader.readAsArrayBuffer(file);
     }
 
+    function finishMeta(meta, base, bytes, view, file) {
+        // Сливаем
+        const fullMeta = Object.assign({}, base, meta);
+        // Убираем дубли
+        const keys = Object.keys(fullMeta);
+        const cleaned = {};
+        for(const k of keys) {
+            if(fullMeta[k] !== undefined && fullMeta[k] !== null && fullMeta[k] !== '') {
+                cleaned[k] = fullMeta[k];
+            }
+        }
+        currentMeta = cleaned;
+
+        // ===== ХЕШИ =====
+        const hash = CryptoJS.MD5(CryptoJS.lib.WordArray.create(bytes));
+        const sha1 = CryptoJS.SHA1(CryptoJS.lib.WordArray.create(bytes));
+        const sha256 = CryptoJS.SHA256(CryptoJS.lib.WordArray.create(bytes));
+        currentHash = {
+            MD5: hash.toString(CryptoJS.enc.Hex),
+            SHA1: sha1.toString(CryptoJS.enc.Hex),
+            SHA256: sha256.toString(CryptoJS.enc.Hex)
+        };
+
+        // ===== СТРОКИ (ASCII >= 4 символа) =====
+        const strings = extractStrings(bytes);
+        currentStrings = strings;
+
+        // ===== LSB-аномалии (простейший анализ младших бит) =====
+        const lsbScore = analyzeLSB(bytes);
+        currentLsbScore = lsbScore;
+
+        // ===== ВЫВОД =====
+        renderMeta(cleaned);
+        renderExtra(currentHash, strings, lsbScore, file);
+        renderStats(cleaned, file);
+
+        statusDiv.textContent = '✅ Готово. Извлечено ' + Object.keys(cleaned).length + ' полей, ' + strings.length + ' строк, хеши посчитаны.';
+    }
+
+    // ==================== ОТОБРАЖЕНИЕ ====================
+    function renderMeta(meta) {
+        let out = '';
+        const sorted = Object.keys(meta).sort();
+        for(const k of sorted) {
+            let v = meta[k];
+            if(typeof v === 'object' && v !== null) {
+                try { v = JSON.stringify(v, null, 2); } catch { v = String(v); }
+            } else if(typeof v === 'string' && v.length > 500) {
+                v = v.substring(0,500) + '…';
+            }
+            out += `<span class="tag">${k}</span> : <span class="value">${v}</span>\n`;
+        }
+        metaOutput.innerHTML = out || '⚠️ Нет данных';
+    }
+
+    function renderExtra(hash, strings, lsb, file) {
+        let out = '';
+        out += '<span class="section">📌 ХЕШИ</span>\n';
+        out += `MD5    : ${hash.MD5}\n`;
+        out += `SHA1   : ${hash.SHA1}\n`;
+        out += `SHA256 : ${hash.SHA256}\n\n`;
+        out += `<span class="section">🔍 LSB-аномалии</span>\n`;
+        out += `Оценка (0-1): ${lsb.toFixed(4)} `;
+        if(lsb > 0.55) out += '(⚠️ возможны скрытые данные)';
+        else if(lsb > 0.48) out += '(нормально)';
+        else out += '(низкая энтропия)';
+        out += '\n\n';
+        out += `<span class="section">📝 Извлечённые строки (ASCII, длина >= 4)</span>\n`;
+        if(strings.length === 0) out += '— не найдено';
+        else {
+            const unique = [...new Set(strings)];
+            for(let s of unique) {
+                if(s.length > 80) s = s.substring(0,80) + '…';
+                out += `  "${s}"\n`;
+            }
+        }
+        extraOutput.innerHTML = out;
+        extraStats.innerHTML = `<span>🧩 Строк: ${strings.length}</span><span>🔑 Уникальных: ${new Set(strings).size}</span>`;
+    }
+
+    function renderStats(meta, file) {
+        const keys = Object.keys(meta);
+        const size = new Blob([JSON.stringify(meta)]).size;
+        statsBar.innerHTML = `
+            <span>🧩 Поля: ${keys.length}</span>
+            <span>📦 Мета: ${(size/1024).toFixed(2)} KB</span>
+            <span>📷 ${meta.Make || meta.Software || meta.Author || meta.Title || '—'}</span>
+            <span>📍 ${meta.GPSLatitude ? 'GPS есть' : '—'}</span>
+        `;
+    }
+
+    // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
     function readPngTextChunks(file) {
-        return new Promise(function(resolve, reject) {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = (e) => {
                 try {
                     const view = new DataView(e.target.result);
                     const result = {};
                     let offset = 8;
-                    while (offset < view.byteLength) {
+                    while(offset < view.byteLength) {
                         const len = view.getUint32(offset);
-                        const type = view.getUint32(offset + 4);
-                        const typeStr = String.fromCharCode(
-                            (type>>24)&0xFF, (type>>16)&0xFF,
-                            (type>>8)&0xFF, type&0xFF
-                        );
-                        if (typeStr === 'tEXt' || typeStr === 'zTXt' || typeStr === 'iTXt') {
-                            let key = '', val = '', i = 0, start = offset + 8;
-                            while (view.getUint8(start + i) !== 0) {
-                                key += String.fromCharCode(view.getUint8(start + i));
-                                i++;
-                            }
-                            let j = i + 1;
-                            if (typeStr === 'zTXt') j += 1;
-                            if (typeStr === 'iTXt') {
-                                j += 2 + view.getUint8(start + i + 2) + 1;
-                            }
-                            while (j < len && view.getUint8(start + j) !== 0) {
-                                val += String.fromCharCode(view.getUint8(start + j));
-                                j++;
-                            }
-                            if (key) result[key] = val || '(пусто)';
+                        const type = view.getUint32(offset+4);
+                        const typeStr = String.fromCharCode((type>>24)&0xFF,(type>>16)&0xFF,(type>>8)&0xFF,type&0xFF);
+                        if(typeStr === 'tEXt' || typeStr === 'zTXt' || typeStr === 'iTXt') {
+                            let key='', val='', i=0, start=offset+8;
+                            while(view.getUint8(start+i)!==0) { key += String.fromCharCode(view.getUint8(start+i)); i++; }
+                            let j=i+1;
+                            if(typeStr==='zTXt') j+=1;
+                            if(typeStr==='iTXt') { j += 2 + view.getUint8(start+i+2) + 1; }
+                            while(j<len && view.getUint8(start+j)!==0) { val += String.fromCharCode(view.getUint8(start+j)); j++; }
+                            if(key) result[key] = val || '(пусто)';
                         }
                         offset += 12 + len;
-                        if (offset >= view.byteLength) break;
+                        if(offset >= view.byteLength) break;
                     }
                     resolve(result);
-                } catch(err) {
-                    reject(err);
-                }
+                } catch(err) { reject(err); }
             };
             reader.onerror = reject;
             reader.readAsArrayBuffer(file);
         });
     }
 
-    // ======== ОТОБРАЖЕНИЕ МЕТА ========
-    function renderMeta(meta) {
-        currentMeta = meta;
-        const keys = Object.keys(meta);
-        const count = keys.length;
-        const size = new Blob([JSON.stringify(meta)]).size;
-        statsBar.innerHTML =
-            '<span style="margin-right:14px;">🧩 Поля: ' + count + '</span>' +
-            '<span>📦 ' + (size/1024).toFixed(2) + ' KB</span>' +
-            '<span style="margin-left:14px;">📷 ' + (meta.Make || meta.Software || meta.Author || meta.Title || '—') + '</span>';
-        let output = '';
-        const sorted = keys.sort();
-        for (const k of sorted) {
-            let v = meta[k];
-            if (typeof v === 'object' && v !== null) {
-                try { v = JSON.stringify(v, null, 2); } catch { v = String(v); }
-            } else if (typeof v === 'string' && v.length > 300) {
-                v = v.substring(0,300) + '…';
-            }
-            output += '<span class="tag">' + k + '</span> : <span class="value">' + v + '</span>\n';
-        }
-        metaOutput.innerHTML = output || '⚠️ Пустые метаданные';
-        statusDiv.textContent = '✅ Найдено ' + count + ' полей. Можешь редактировать и скачать.';
-    }
-
-    // ======== ЗАПОЛНИТЬ ФОРМУ ИЗ МЕТА ========
-    fillFromMetaBtn.addEventListener('click', function() {
-        if (!currentMeta) {
-            statusDiv.textContent = '❌ Нет метаданных для заполнения. Загрузи фото или JSON.';
-            return;
-        }
-        const m = currentMeta;
-        if (m.Title) fTitle.value = m.Title;
-        if (m.Author || m.Artist) fAuthor.value = m.Author || m.Artist;
-        if (m.Description) fDesc.value = m.Description;
-        if (m.Copyright) fCopyright.value = m.Copyright;
-        if (m.Keywords) fKeywords.value = m.Keywords;
-        if (m.Comment) fComment.value = m.Comment;
-        if (m.CreateDate || m.DateTime || m.CreationDate) {
-            const d = m.CreateDate || m.DateTime || m.CreationDate;
-            fDate.value = d.toString().replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
-        }
-        statusDiv.textContent = '✅ Поля заполнены из метаданных';
-    });
-
-    // ======== ЭКСПОРТ JSON ========
-    exportJsonBtn.addEventListener('click', function() {
-        const data = {
-            Title: fTitle.value.trim(),
-            Author: fAuthor.value.trim(),
-            Description: fDesc.value.trim(),
-            Copyright: fCopyright.value.trim(),
-            Keywords: fKeywords.value.trim(),
-            Comment: fComment.value.trim(),
-            CreationDate: fDate.value.trim()
-        };
-        // Убираем пустые поля
-        for (const key in data) {
-            if (!data[key]) delete data[key];
-        }
-        if (Object.keys(data).length === 0) {
-            statusDiv.textContent = '❌ Нет данных для экспорта. Заполни хотя бы одно поле.';
-            return;
-        }
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'metadata_export.json';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(link.href);
-        statusDiv.textContent = '✅ JSON экспортирован как metadata_export.json';
-    });
-
-    // ======== ЗАПИСЬ МЕТА И СКАЧИВАНИЕ ========
-    writeBtn.addEventListener('click', function() {
-        if (!currentFile || !currentDataUrl) {
-            statusDiv.textContent = '❌ Сначала загрузи фото';
-            return;
-        }
-
-        const title = fTitle.value.trim();
-        const author = fAuthor.value.trim();
-        const desc = fDesc.value.trim();
-        const copyright = fCopyright.value.trim();
-        const keywords = fKeywords.value.trim();
-        const comment = fComment.value.trim();
-        const date = fDate.value.trim();
-
-        statusDiv.textContent = '⏳ Генерация...';
-
-        const img = new Image();
-        img.onload = function() {
+    function getColorHistogram(img, sample=10000) {
+        try {
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-
-            const ext = lastExt;
-            const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-            const quality = ext === 'png' ? 1 : 0.92;
-
-            if (ext === 'jpg' || ext === 'jpeg') {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/piexifjs@1.0.4/piexif.min.js';
-                script.onload = function() {
-                    try {
-                        const exif = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
-                        if (title) exif["0th"][piexif.ImageIFD.ImageDescription] = title;
-                        if (author) exif["0th"][piexif.ImageIFD.Artist] = author;
-                        if (desc) exif["Exif"][piexif.ExifIFD.UserComment] = desc;
-                        if (copyright) exif["0th"][piexif.ImageIFD.Copyright] = copyright;
-                        if (keywords) exif["0th"][piexif.ImageIFD.XPKeywords] = keywords;
-                        if (comment) exif["Exif"][piexif.ExifIFD.UserComment] = comment;
-                        if (date) {
-                            exif["0th"][piexif.ImageIFD.DateTime] = date;
-                            exif["Exif"][piexif.ExifIFD.DateTimeOriginal] = date;
-                        }
-                        const exifBytes = piexif.dump(exif);
-                        const jpegData = canvas.toDataURL('image/jpeg', quality);
-                        const binary = atob(jpegData.split(',')[1]);
-                        const array = [];
-                        for (let i=0; i<binary.length; i++) array.push(binary.charCodeAt(i));
-                        const newData = piexif.insert(exifBytes, new Uint8Array(array));
-                        const blob = new Blob([newData], { type: 'image/jpeg' });
-                        downloadBlob(blob, currentFile.name.replace(/\.[^.]+$/, '') + '_meta.jpg');
-                        statusDiv.textContent = '✅ JPEG с метаданными скачан!';
-                    } catch(e) {
-                        statusDiv.textContent = '❌ Ошибка: ' + e.message;
-                    }
-                };
-                script.onerror = function() {
-                    statusDiv.textContent = '⚠️ Не удалось загрузить библиотеку. Скачиваем без мета.';
-                    canvas.toBlob(function(blob) { downloadBlob(blob, currentFile.name); }, mime, quality);
-                };
-                document.head.appendChild(script);
-            } else {
-                // PNG
-                canvas.toBlob(function(blob) {
-                    downloadBlob(blob, currentFile.name.replace(/\.[^.]+$/, '') + '_clean.png');
-                    const metaJson = {
-                        Title: title, Author: author, Description: desc,
-                        Copyright: copyright, Keywords: keywords,
-                        Comment: comment, CreationDate: date
-                    };
-                    const jsonBlob = new Blob([JSON.stringify(metaJson, null, 2)], { type: 'application/json' });
-                    downloadBlob(jsonBlob, currentFile.name.replace(/\.[^.]+$/, '') + '_metadata.json');
-                    let cmd = 'exiftool ';
-                    if (title) cmd += '-Title="' + title + '" ';
-                    if (author) cmd += '-Author="' + author + '" ';
-                    if (desc) cmd += '-Description="' + desc + '" ';
-                    if (copyright) cmd += '-Copyright="' + copyright + '" ';
-                    if (keywords) cmd += '-Keywords="' + keywords + '" ';
-                    if (comment) cmd += '-Comment="' + comment + '" ';
-                    if (date) cmd += '-CreateDate="' + date + '" ';
-                    cmd += '"' + currentFile.name + '"';
-                    statusDiv.textContent = '⚠️ Для PNG: скачан чистый PNG + JSON. Используй команду:\n' + cmd;
-                }, mime, quality);
+            const data = ctx.getImageData(0, 0, Math.min(img.width, 100), Math.min(img.height, 100)).data;
+            const colorMap = {};
+            for(let i=0; i<data.length; i+=4) {
+                const r=data[i], g=data[i+1], b=data[i+2];
+                const key = `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+                colorMap[key] = (colorMap[key]||0)+1;
             }
-        };
-        img.src = currentDataUrl;
-    });
-
-    function downloadBlob(blob, filename) {
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(link.href);
+            const sorted = Object.entries(colorMap).sort((a,b) => b[1]-a[1]).slice(0,5);
+            return sorted.map(([c,n]) => `${c} (${n})`).join(', ');
+        } catch { return '—'; }
     }
 
-    // ======== КОПИРОВАТЬ JSON ========
-    copyBtn.addEventListener('click', function() {
-        if (!currentMeta) {
-            statusDiv.textContent = '❌ Нет метаданных для копирования';
-            return;
+    function extractStrings(bytes, minLen=4) {
+        let str = '';
+        const result = [];
+        for(let i=0; i<bytes.length; i++) {
+            const c = bytes[i];
+            if(c >= 32 && c <= 126) {
+                str += String.fromCharCode(c);
+            } else {
+                if(str.length >= minLen) result.push(str);
+                str = '';
+            }
         }
+        if(str.length >= minLen) result.push(str);
+        return result;
+    }
+
+    function analyzeLSB(bytes, sample=50000) {
+        // Анализ младших бит первых N байт — оценка энтропии
+        let ones = 0, total = 0;
+        const limit = Math.min(bytes.length, sample);
+        for(let i=0; i<limit; i++) {
+            ones += bytes[i] & 1;
+            total++;
+        }
+        const ratio = ones / total;
+        // 0.5 — идеально случайно, отклонение указывает на возможную стеганографию
+        return Math.abs(ratio - 0.5) * 2; // 0 = нет данных, 1 = максимальная аномалия
+    }
+
+    // ==================== КНОПКИ ====================
+
+    copyBtn.addEventListener('click', () => {
+        if(!currentMeta) { statusDiv.textContent='❌ Нет данных'; return; }
         const text = JSON.stringify(currentMeta, null, 2);
-        navigator.clipboard.writeText(text).then(function() {
-            statusDiv.textContent = '✅ Скопировано в буфер (JSON)';
-        }).catch(function() {
+        navigator.clipboard.writeText(text).then(() => statusDiv.textContent='✅ Скопировано').catch(() => {
             const area = document.createElement('textarea');
             area.value = text;
             document.body.appendChild(area);
             area.select();
             document.execCommand('copy');
             area.remove();
-            statusDiv.textContent = '✅ Скопировано (fallback)';
+            statusDiv.textContent='✅ Скопировано (fallback)';
         });
     });
 
-    // ======== ОБНОВИТЬ МЕТА ========
-    refreshBtn.addEventListener('click', function() {
-        if (!currentFile) { statusDiv.textContent = '❌ Загрузи фото'; return; }
-        readMeta(currentFile);
+    copyExtraBtn.addEventListener('click', () => {
+        const text = extraOutput.textContent;
+        if(!text) { statusDiv.textContent='❌ Нет данных'; return; }
+        navigator.clipboard.writeText(text).then(() => statusDiv.textContent='✅ Скопирован анализ').catch(() => {
+            const area = document.createElement('textarea');
+            area.value = text;
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand('copy');
+            area.remove();
+            statusDiv.textContent='✅ Скопирован анализ (fallback)';
+        });
     });
 
-    // ======== ОЧИСТИТЬ ========
-    clearBtn.addEventListener('click', function() {
+    downloadJsonBtn.addEventListener('click', () => {
+        if(!currentMeta) { statusDiv.textContent='❌ Нет данных'; return; }
+        const full = {
+            metadata: currentMeta,
+            hashes: currentHash,
+            strings: currentStrings,
+            lsb_anomaly_score: currentLsbScore
+        };
+        const json = JSON.stringify(full, null, 2);
+        const blob = new Blob([json], { type:'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'swill_full_extract.json';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
+        statusDiv.textContent='✅ JSON скачан';
+    });
+
+    refreshBtn.addEventListener('click', () => {
+        if(!currentFile) { statusDiv.textContent='❌ Загрузи файл'; return; }
+        extractEverything(currentFile);
+    });
+
+    clearBtn.addEventListener('click', () => {
         currentFile = null;
         currentDataUrl = null;
         currentMeta = null;
+        currentHash = null;
+        currentStrings = [];
+        currentLsbScore = 0;
         previewImg.style.display = 'none';
         previewImg.src = '';
         fileName.textContent = 'Файл не выбран';
         metaOutput.textContent = 'Очищено';
-        statsBar.textContent = '';
-        statusDiv.textContent = 'Готов к работе.';
-        fTitle.value = ''; fAuthor.value = ''; fDesc.value = '';
-        fCopyright.value = ''; fKeywords.value = ''; fComment.value = ''; fDate.value = '';
+        extraOutput.textContent = 'Очищено';
+        statsBar.innerHTML = '';
+        extraStats.innerHTML = '';
+        statusDiv.textContent = 'Готов.';
         fileInput.value = '';
-        jsonInput.value = '';
     });
+
 })();
 </script>
 </body>
