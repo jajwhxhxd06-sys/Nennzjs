@@ -43,10 +43,15 @@
         .btn-danger:hover { background:#8f3b4b; }
         .btn-warning { background:#a67c2b; border-color:#c99f3a; }
         .btn-warning:hover { background:#c08f32; }
+        .btn-purple { background:#5e3a7a; border-color:#7e4fa3; }
+        .btn-purple:hover { background:#724a92; }
 
         .status { margin-top:16px; padding:14px; border-radius:12px; background:#0d121b; border:1px solid #293544; font-family:monospace; font-size:0.85rem; white-space:pre-wrap; }
         .badge { display:inline-block; background:#1b2330; padding:2px 14px; border-radius:30px; border:1px solid #2e3f55; font-size:0.75rem; color:#8fa3c0; margin-right:8px; }
         .flex { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .json-upload-area { border:1px dashed #5e4a7a; border-radius:12px; padding:10px 16px; text-align:center; cursor:pointer; background:#0f0a1a; transition:0.2s; margin-top:8px; }
+        .json-upload-area:hover { border-color:#8a6ab0; background:#150f22; }
+        .json-upload-area input { display:none; }
         ::-webkit-scrollbar { width:5px; }
         ::-webkit-scrollbar-track { background:#131b25; }
         ::-webkit-scrollbar-thumb { background:#3f5777; border-radius:10px; }
@@ -56,16 +61,24 @@
 <div class="container">
     <div class="flex">
         <h1>⬡ SWILL · Meta Studio</h1>
-        <span class="badge">Reader + Writer</span>
+        <span class="badge">Reader + Writer + JSON Import</span>
     </div>
-    <div class="sub">Загрузи фото → увидишь все мета → отредактируй → скачай с новыми мета</div>
+    <div class="sub">Загрузи фото → мета → редактируй → скачай. Или загрузи JSON с мета.</div>
 
     <div class="upload-area" id="dropZone">
         <div class="icon">🖼️</div>
-        <p><strong>Кликни или перетащи файл</strong></p>
+        <p><strong>Кликни или перетащи фото</strong></p>
         <p style="font-size:0.85rem;color:#687b95;">JPG, JPEG, PNG</p>
         <p class="file-name" id="fileName">Файл не выбран</p>
         <input type="file" id="fileInput" accept=".jpg,.jpeg,.png">
+    </div>
+
+    <!-- JSON загрузка -->
+    <div class="json-upload-area" id="jsonDropZone">
+        <span style="font-size:1.2rem;">📂</span>
+        <strong>Загрузить JSON с метаданными</strong>
+        <span style="color:#7b8ba3;font-size:0.85rem;display:block;">(экспортированный из этого же сайта или любой совместимый)</span>
+        <input type="file" id="jsonInput" accept=".json">
     </div>
 
     <div class="grid2">
@@ -97,6 +110,7 @@
             <div class="btn-group">
                 <button class="btn btn-success" id="writeBtn">✏️ Записать мета и скачать</button>
                 <button class="btn btn-primary" id="fillFromMetaBtn">📥 Заполнить из мета</button>
+                <button class="btn btn-purple" id="exportJsonBtn">📤 Экспорт JSON</button>
             </div>
             <div id="status" class="status">Готов к работе.</div>
         </div>
@@ -114,6 +128,8 @@
     // ======== DOM ========
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
+    const jsonDropZone = document.getElementById('jsonDropZone');
+    const jsonInput = document.getElementById('jsonInput');
     const fileName = document.getElementById('fileName');
     const previewImg = document.getElementById('previewImg');
     const metaOutput = document.getElementById('metaOutput');
@@ -124,6 +140,7 @@
     const clearBtn = document.getElementById('clearBtn');
     const writeBtn = document.getElementById('writeBtn');
     const fillFromMetaBtn = document.getElementById('fillFromMetaBtn');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
 
     const fTitle = document.getElementById('fTitle');
     const fAuthor = document.getElementById('fAuthor');
@@ -133,19 +150,14 @@
     const fComment = document.getElementById('fComment');
     const fDate = document.getElementById('fDate');
 
-    // ======== ЗАГРУЗКА ФАЙЛА ========
-    // Клик по зоне -> клик по input
+    // ======== ЗАГРУЗКА ФОТО ========
     dropZone.addEventListener('click', function(e) {
         e.stopPropagation();
         fileInput.click();
     });
-
-    // Отдельно на всякий случай — если кликнут по самому input, чтобы не срабатывало дважды
     fileInput.addEventListener('click', function(e) {
         e.stopPropagation();
     });
-
-    // Drag & Drop
     dropZone.addEventListener('dragover', function(e) {
         e.preventDefault();
         dropZone.style.borderColor = '#7aa9e6';
@@ -161,16 +173,53 @@
             handleFile(e.dataTransfer.files[0]);
         }
     });
-
-    // Выбор через input
     fileInput.addEventListener('change', function(e) {
         if (this.files && this.files.length > 0) {
             handleFile(this.files[0]);
         }
-        // Сбрасываем input, чтобы можно было выбрать тот же файл повторно
         this.value = '';
     });
 
+    // ======== ЗАГРУЗКА JSON ========
+    jsonDropZone.addEventListener('click', function(e) {
+        e.stopPropagation();
+        jsonInput.click();
+    });
+    jsonInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    jsonInput.addEventListener('change', function(e) {
+        if (this.files && this.files.length > 0) {
+            const file = this.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    // Заполняем форму из JSON
+                    if (data.Title) fTitle.value = data.Title;
+                    if (data.Author || data.Artist) fAuthor.value = data.Author || data.Artist;
+                    if (data.Description) fDesc.value = data.Description;
+                    if (data.Copyright) fCopyright.value = data.Copyright;
+                    if (data.Keywords) fKeywords.value = data.Keywords;
+                    if (data.Comment) fComment.value = data.Comment;
+                    if (data.CreateDate || data.DateTime || data.CreationDate) {
+                        const d = data.CreateDate || data.DateTime || data.CreationDate;
+                        fDate.value = d.toString().replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
+                    }
+                    statusDiv.textContent = '✅ JSON загружен! Поля заполнены. Теперь загрузи фото и скачай с мета.';
+                    // Показываем мета в блоке
+                    metaOutput.innerHTML = '📂 Загружен JSON:\n' + JSON.stringify(data, null, 2);
+                    currentMeta = data;
+                } catch(err) {
+                    statusDiv.textContent = '❌ Ошибка парсинга JSON: ' + err.message;
+                }
+            };
+            reader.readAsText(file);
+        }
+        this.value = '';
+    });
+
+    // ======== ОБРАБОТКА ФАЙЛА ФОТО ========
     function handleFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
         if (!['jpg','jpeg','png'].includes(ext)) {
@@ -231,7 +280,6 @@
             });
     }
 
-    // Ручной парсер PNG-чанков
     function readPngTextChunks(file) {
         return new Promise(function(resolve, reject) {
             const reader = new FileReader();
@@ -305,7 +353,7 @@
     // ======== ЗАПОЛНИТЬ ФОРМУ ИЗ МЕТА ========
     fillFromMetaBtn.addEventListener('click', function() {
         if (!currentMeta) {
-            statusDiv.textContent = '❌ Нет метаданных для заполнения. Загрузи фото.';
+            statusDiv.textContent = '❌ Нет метаданных для заполнения. Загрузи фото или JSON.';
             return;
         }
         const m = currentMeta;
@@ -315,11 +363,42 @@
         if (m.Copyright) fCopyright.value = m.Copyright;
         if (m.Keywords) fKeywords.value = m.Keywords;
         if (m.Comment) fComment.value = m.Comment;
-        if (m.CreateDate || m.DateTime) {
-            const d = (m.CreateDate || m.DateTime).toString();
-            fDate.value = d.replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
+        if (m.CreateDate || m.DateTime || m.CreationDate) {
+            const d = m.CreateDate || m.DateTime || m.CreationDate;
+            fDate.value = d.toString().replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
         }
         statusDiv.textContent = '✅ Поля заполнены из метаданных';
+    });
+
+    // ======== ЭКСПОРТ JSON ========
+    exportJsonBtn.addEventListener('click', function() {
+        const data = {
+            Title: fTitle.value.trim(),
+            Author: fAuthor.value.trim(),
+            Description: fDesc.value.trim(),
+            Copyright: fCopyright.value.trim(),
+            Keywords: fKeywords.value.trim(),
+            Comment: fComment.value.trim(),
+            CreationDate: fDate.value.trim()
+        };
+        // Убираем пустые поля
+        for (const key in data) {
+            if (!data[key]) delete data[key];
+        }
+        if (Object.keys(data).length === 0) {
+            statusDiv.textContent = '❌ Нет данных для экспорта. Заполни хотя бы одно поле.';
+            return;
+        }
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'metadata_export.json';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
+        statusDiv.textContent = '✅ JSON экспортирован как metadata_export.json';
     });
 
     // ======== ЗАПИСЬ МЕТА И СКАЧИВАНИЕ ========
@@ -462,6 +541,7 @@
         fTitle.value = ''; fAuthor.value = ''; fDesc.value = '';
         fCopyright.value = ''; fKeywords.value = ''; fComment.value = ''; fDate.value = '';
         fileInput.value = '';
+        jsonInput.value = '';
     });
 })();
 </script>
