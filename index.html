@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWILL · Meta Studio (Reader + Writer)</title>
+    <title>SWILL · Meta Studio</title>
     <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/exifr.umd.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -14,7 +14,6 @@
         .grid2 { display:grid; grid-template-columns:1fr 1.2fr; gap:30px; }
         @media(max-width:900px){ .grid2 { grid-template-columns:1fr; } }
 
-        /* Upload */
         .upload-area { border:2px dashed #3b4a5e; border-radius:20px; padding:30px 20px; text-align:center; cursor:pointer; transition:0.25s; background:#11161f; margin-bottom:20px; }
         .upload-area:hover { border-color:#5f8fc9; background:#171f2b; }
         .upload-area input { display:none; }
@@ -22,12 +21,10 @@
         .file-name { color:#b0c4de; margin-top:6px; }
         .preview-img { max-width:100%; max-height:350px; border-radius:16px; border:1px solid #2e3c4f; display:none; margin:10px 0; }
 
-        /* Meta output */
         .meta-box { background:#0d121b; border-radius:18px; padding:18px; border:1px solid #293544; max-height:500px; overflow-y:auto; font-family:'JetBrains Mono',monospace; font-size:0.8rem; white-space:pre-wrap; word-break:break-all; line-height:1.6; }
         .meta-box .tag { color:#8ab3e0; }
         .meta-box .value { color:#e2c08d; }
 
-        /* Form */
         .field { margin-bottom:14px; }
         label { display:block; margin-bottom:4px; color:#b0c4de; font-weight:500; font-size:0.9rem; }
         input, textarea { width:100%; padding:10px 14px; border-radius:10px; border:1px solid #2e3f55; background:#0d121b; color:#e8f0fa; font-size:0.95rem; outline:none; }
@@ -36,7 +33,6 @@
         .row2 { display:flex; gap:14px; flex-wrap:wrap; }
         .row2 .field { flex:1; min-width:140px; }
 
-        /* Buttons */
         .btn-group { display:flex; gap:12px; flex-wrap:wrap; margin-top:18px; }
         .btn { background:#2b3a4e; border:none; color:white; padding:12px 28px; border-radius:40px; font-weight:500; font-size:0.95rem; cursor:pointer; border:1px solid #3e516a; transition:0.2s; }
         .btn-primary { background:#1f6da9; border-color:#3d8fd6; }
@@ -49,11 +45,8 @@
         .btn-warning:hover { background:#c08f32; }
 
         .status { margin-top:16px; padding:14px; border-radius:12px; background:#0d121b; border:1px solid #293544; font-family:monospace; font-size:0.85rem; white-space:pre-wrap; }
-
         .badge { display:inline-block; background:#1b2330; padding:2px 14px; border-radius:30px; border:1px solid #2e3f55; font-size:0.75rem; color:#8fa3c0; margin-right:8px; }
         .flex { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-
-        /* Scroll */
         ::-webkit-scrollbar { width:5px; }
         ::-webkit-scrollbar-track { background:#131b25; }
         ::-webkit-scrollbar-thumb { background:#3f5777; border-radius:10px; }
@@ -76,7 +69,6 @@
     </div>
 
     <div class="grid2">
-        <!-- Левая колонка: превью + вывод мета -->
         <div>
             <img id="previewImg" class="preview-img" src="" alt="preview">
             <div class="flex" style="margin-bottom:10px;gap:10px;">
@@ -90,7 +82,6 @@
             </div>
         </div>
 
-        <!-- Правая колонка: форма редактирования -->
         <div>
             <h3 style="color:#b9e2fa;font-weight:300;margin-bottom:14px;">✎ Редактор метаданных</h3>
             <div class="field"><label>📌 Title (заголовок)</label><input id="fTitle" placeholder="Название"></div>
@@ -113,318 +104,366 @@
 </div>
 
 <script>
-// ======== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========
-let currentFile = null;
-let currentDataUrl = null;
-let currentMeta = null;          // последние прочитанные мета
-let lastExt = 'jpg';
+(function() {
+    // ======== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ========
+    let currentFile = null;
+    let currentDataUrl = null;
+    let currentMeta = null;
+    let lastExt = 'jpg';
 
-// ======== DOM ========
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const fileName = document.getElementById('fileName');
-const previewImg = document.getElementById('previewImg');
-const metaOutput = document.getElementById('metaOutput');
-const statsBar = document.getElementById('statsBar');
-const statusDiv = document.getElementById('status');
-const copyBtn = document.getElementById('copyBtn');
-const refreshBtn = document.getElementById('refreshBtn');
-const clearBtn = document.getElementById('clearBtn');
-const writeBtn = document.getElementById('writeBtn');
-const fillFromMetaBtn = document.getElementById('fillFromMetaBtn');
+    // ======== DOM ========
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const previewImg = document.getElementById('previewImg');
+    const metaOutput = document.getElementById('metaOutput');
+    const statsBar = document.getElementById('statsBar');
+    const statusDiv = document.getElementById('status');
+    const copyBtn = document.getElementById('copyBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const writeBtn = document.getElementById('writeBtn');
+    const fillFromMetaBtn = document.getElementById('fillFromMetaBtn');
 
-const fTitle = document.getElementById('fTitle');
-const fAuthor = document.getElementById('fAuthor');
-const fDesc = document.getElementById('fDesc');
-const fCopyright = document.getElementById('fCopyright');
-const fKeywords = document.getElementById('fKeywords');
-const fComment = document.getElementById('fComment');
-const fDate = document.getElementById('fDate');
+    const fTitle = document.getElementById('fTitle');
+    const fAuthor = document.getElementById('fAuthor');
+    const fDesc = document.getElementById('fDesc');
+    const fCopyright = document.getElementById('fCopyright');
+    const fKeywords = document.getElementById('fKeywords');
+    const fComment = document.getElementById('fComment');
+    const fDate = document.getElementById('fDate');
 
-// ======== ЗАГРУЗКА ФАЙЛА ========
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor='#7aa9e6'; });
-dropZone.addEventListener('dragleave', () => dropZone.style.borderColor='#3b4a5e');
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.style.borderColor='#3b4a5e'; if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', e => { if(e.target.files.length) handleFile(e.target.files[0]); });
+    // ======== ЗАГРУЗКА ФАЙЛА ========
+    // Клик по зоне -> клик по input
+    dropZone.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fileInput.click();
+    });
 
-function handleFile(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!['jpg','jpeg','png'].includes(ext)) {
-        statusDiv.textContent = '❌ Только JPG/JPEG/PNG';
-        return;
+    // Отдельно на всякий случай — если кликнут по самому input, чтобы не срабатывало дважды
+    fileInput.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+
+    // Drag & Drop
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#7aa9e6';
+    });
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#3b4a5e';
+    });
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.style.borderColor = '#3b4a5e';
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Выбор через input
+    fileInput.addEventListener('change', function(e) {
+        if (this.files && this.files.length > 0) {
+            handleFile(this.files[0]);
+        }
+        // Сбрасываем input, чтобы можно было выбрать тот же файл повторно
+        this.value = '';
+    });
+
+    function handleFile(file) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['jpg','jpeg','png'].includes(ext)) {
+            statusDiv.textContent = '❌ Только JPG/JPEG/PNG';
+            return;
+        }
+        lastExt = ext;
+        currentFile = file;
+        fileName.textContent = '📄 ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentDataUrl = e.target.result;
+            previewImg.src = currentDataUrl;
+            previewImg.style.display = 'block';
+            statusDiv.textContent = '✅ Загружено. Читаю метаданные...';
+            readMeta(file);
+        };
+        reader.onerror = function() {
+            statusDiv.textContent = '❌ Ошибка чтения файла';
+        };
+        reader.readAsDataURL(file);
     }
-    lastExt = ext;
-    currentFile = file;
-    fileName.textContent = `📄 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-    const reader = new FileReader();
-    reader.onload = e => {
-        currentDataUrl = e.target.result;
-        previewImg.src = currentDataUrl;
-        previewImg.style.display = 'block';
-        statusDiv.textContent = '✅ Загружено. Читаю метаданные...';
-        readMeta(file);
-    };
-    reader.readAsDataURL(file);
-}
 
-// ======== ЧТЕНИЕ МЕТАДАННЫХ ========
-function readMeta(file) {
-    const options = {
-        mergeOutput: true,
-        translateKeys: true,
-        tiff: true, exif: true, iptc: true, xmp: true,
-        png: true,
-        pick: ['*']
-    };
-    exifr.parse(file, options)
-        .then(meta => {
-            if (!meta || Object.keys(meta).length === 0) {
-                // пробуем ручной парсер PNG
-                return readPngTextChunks(file).then(chunks => {
+    // ======== ЧТЕНИЕ МЕТАДАННЫХ ========
+    function readMeta(file) {
+        const options = {
+            mergeOutput: true,
+            translateKeys: true,
+            tiff: true, exif: true, iptc: true, xmp: true,
+            png: true,
+            pick: ['*']
+        };
+        exifr.parse(file, options)
+            .then(function(meta) {
+                if (!meta || Object.keys(meta).length === 0) {
+                    return readPngTextChunks(file).then(function(chunks) {
+                        if (chunks && Object.keys(chunks).length) {
+                            renderMeta(chunks);
+                        } else {
+                            metaOutput.textContent = '⚠️ Метаданные не найдены';
+                            statsBar.textContent = '📭 Нет данных';
+                            currentMeta = null;
+                        }
+                    });
+                }
+                renderMeta(meta);
+            })
+            .catch(function() {
+                readPngTextChunks(file).then(function(chunks) {
                     if (chunks && Object.keys(chunks).length) {
                         renderMeta(chunks);
                     } else {
-                        metaOutput.textContent = '⚠️ Метаданные не найдены';
-                        statsBar.textContent = '📭 Нет данных';
+                        metaOutput.textContent = '❌ Не удалось прочитать метаданные';
+                        statsBar.textContent = '⚠️ Ошибка';
                         currentMeta = null;
                     }
                 });
-            }
-            renderMeta(meta);
-        })
-        .catch(() => {
-            // фолбэк
-            readPngTextChunks(file).then(chunks => {
-                if (chunks && Object.keys(chunks).length) {
-                    renderMeta(chunks);
-                } else {
-                    metaOutput.textContent = '❌ Не удалось прочитать метаданные';
-                    statsBar.textContent = '⚠️ Ошибка';
-                    currentMeta = null;
-                }
             });
-        });
-}
-
-// Ручной парсер PNG-чанков
-function readPngTextChunks(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => {
-            try {
-                const view = new DataView(e.target.result);
-                const result = {};
-                let offset = 8;
-                while (offset < view.byteLength) {
-                    const len = view.getUint32(offset);
-                    const type = view.getUint32(offset + 4);
-                    const typeStr = String.fromCharCode((type>>24)&0xFF,(type>>16)&0xFF,(type>>8)&0xFF,type&0xFF);
-                    if (typeStr === 'tEXt' || typeStr === 'zTXt' || typeStr === 'iTXt') {
-                        let key='', val='', i=0, start=offset+8;
-                        while (view.getUint8(start+i)!==0) { key+=String.fromCharCode(view.getUint8(start+i)); i++; }
-                        let j=i+1;
-                        if (typeStr === 'zTXt') j += 1;
-                        if (typeStr === 'iTXt') { j += 2 + view.getUint8(start+i+2) + 1; }
-                        while (j<len && view.getUint8(start+j)!==0) { val+=String.fromCharCode(view.getUint8(start+j)); j++; }
-                        if (key) result[key] = val || '(пусто)';
-                    }
-                    offset += 12 + len;
-                    if (offset >= view.byteLength) break;
-                }
-                resolve(result);
-            } catch(err) { reject(err); }
-        };
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-    });
-}
-
-// ======== ОТОБРАЖЕНИЕ МЕТА ========
-function renderMeta(meta) {
-    currentMeta = meta;
-    const keys = Object.keys(meta);
-    const count = keys.length;
-    const size = new Blob([JSON.stringify(meta)]).size;
-    statsBar.innerHTML = `
-        <span style="margin-right:14px;">🧩 Поля: ${count}</span>
-        <span>📦 ${(size/1024).toFixed(2)} KB</span>
-        <span style="margin-left:14px;">📷 ${meta.Make || meta.Software || meta.Author || meta.Title || '—'}</span>
-    `;
-    let output = '';
-    const sorted = keys.sort();
-    for (const k of sorted) {
-        let v = meta[k];
-        if (typeof v === 'object' && v !== null) {
-            try { v = JSON.stringify(v, null, 2); } catch { v = String(v); }
-        } else if (typeof v === 'string' && v.length > 300) {
-            v = v.substring(0,300) + '…';
-        }
-        output += `<span class="tag">${k}</span> : <span class="value">${v}</span>\n`;
-    }
-    metaOutput.innerHTML = output || '⚠️ Пустые метаданные';
-    statusDiv.textContent = `✅ Найдено ${count} полей. Можешь редактировать и скачать.`;
-}
-
-// ======== ЗАПОЛНИТЬ ФОРМУ ИЗ МЕТА ========
-fillFromMetaBtn.addEventListener('click', () => {
-    if (!currentMeta) {
-        statusDiv.textContent = '❌ Нет метаданных для заполнения. Загрузи фото.';
-        return;
-    }
-    const m = currentMeta;
-    if (m.Title) fTitle.value = m.Title;
-    if (m.Author || m.Artist) fAuthor.value = m.Author || m.Artist;
-    if (m.Description) fDesc.value = m.Description;
-    if (m.Copyright) fCopyright.value = m.Copyright;
-    if (m.Keywords) fKeywords.value = m.Keywords;
-    if (m.Comment) fComment.value = m.Comment;
-    if (m.CreateDate || m.DateTime) {
-        const d = (m.CreateDate || m.DateTime).toString();
-        fDate.value = d.replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
-    }
-    statusDiv.textContent = '✅ Поля заполнены из метаданных';
-});
-
-// ======== ЗАПИСЬ МЕТА И СКАЧИВАНИЕ ========
-writeBtn.addEventListener('click', () => {
-    if (!currentFile || !currentDataUrl) {
-        statusDiv.textContent = '❌ Сначала загрузи фото';
-        return;
     }
 
-    const title = fTitle.value.trim();
-    const author = fAuthor.value.trim();
-    const desc = fDesc.value.trim();
-    const copyright = fCopyright.value.trim();
-    const keywords = fKeywords.value.trim();
-    const comment = fComment.value.trim();
-    const date = fDate.value.trim();
-
-    statusDiv.textContent = '⏳ Генерация...';
-
-    const img = new Image();
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        const ext = lastExt;
-        const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-        const quality = ext === 'png' ? 1 : 0.92;
-
-        if (ext === 'jpg' || ext === 'jpeg') {
-            // Используем piexifjs для JPEG
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/piexifjs@1.0.4/piexif.min.js';
-            script.onload = () => {
+    // Ручной парсер PNG-чанков
+    function readPngTextChunks(file) {
+        return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
                 try {
-                    const exif = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
-                    if (title) exif["0th"][piexif.ImageIFD.ImageDescription] = title;
-                    if (author) exif["0th"][piexif.ImageIFD.Artist] = author;
-                    if (desc) exif["Exif"][piexif.ExifIFD.UserComment] = desc;
-                    if (copyright) exif["0th"][piexif.ImageIFD.Copyright] = copyright;
-                    if (keywords) exif["0th"][piexif.ImageIFD.XPKeywords] = keywords;
-                    if (comment) exif["Exif"][piexif.ExifIFD.UserComment] = comment;
-                    if (date) {
-                        exif["0th"][piexif.ImageIFD.DateTime] = date;
-                        exif["Exif"][piexif.ExifIFD.DateTimeOriginal] = date;
+                    const view = new DataView(e.target.result);
+                    const result = {};
+                    let offset = 8;
+                    while (offset < view.byteLength) {
+                        const len = view.getUint32(offset);
+                        const type = view.getUint32(offset + 4);
+                        const typeStr = String.fromCharCode(
+                            (type>>24)&0xFF, (type>>16)&0xFF,
+                            (type>>8)&0xFF, type&0xFF
+                        );
+                        if (typeStr === 'tEXt' || typeStr === 'zTXt' || typeStr === 'iTXt') {
+                            let key = '', val = '', i = 0, start = offset + 8;
+                            while (view.getUint8(start + i) !== 0) {
+                                key += String.fromCharCode(view.getUint8(start + i));
+                                i++;
+                            }
+                            let j = i + 1;
+                            if (typeStr === 'zTXt') j += 1;
+                            if (typeStr === 'iTXt') {
+                                j += 2 + view.getUint8(start + i + 2) + 1;
+                            }
+                            while (j < len && view.getUint8(start + j) !== 0) {
+                                val += String.fromCharCode(view.getUint8(start + j));
+                                j++;
+                            }
+                            if (key) result[key] = val || '(пусто)';
+                        }
+                        offset += 12 + len;
+                        if (offset >= view.byteLength) break;
                     }
-                    const exifBytes = piexif.dump(exif);
-                    const jpegData = canvas.toDataURL('image/jpeg', quality);
-                    const binary = atob(jpegData.split(',')[1]);
-                    const array = [];
-                    for (let i=0; i<binary.length; i++) array.push(binary.charCodeAt(i));
-                    const newData = piexif.insert(exifBytes, new Uint8Array(array));
-                    const blob = new Blob([newData], { type: 'image/jpeg' });
-                    downloadBlob(blob, currentFile.name.replace(/\.[^.]+$/, '') + '_meta.jpg');
-                    statusDiv.textContent = '✅ JPEG с метаданными скачан!';
-                } catch(e) {
-                    statusDiv.textContent = '❌ Ошибка: ' + e.message;
+                    resolve(result);
+                } catch(err) {
+                    reject(err);
                 }
             };
-            script.onerror = () => {
-                statusDiv.textContent = '⚠️ Не удалось загрузить библиотеку. Скачиваем без мета.';
-                canvas.toBlob(blob => downloadBlob(blob, currentFile.name), mime, quality);
-            };
-            document.head.appendChild(script);
-        } else {
-            // PNG — скачиваем чистый PNG + JSON + ExifTool команда
-            canvas.toBlob(blob => {
-                downloadBlob(blob, currentFile.name.replace(/\.[^.]+$/, '') + '_clean.png');
-                const metaJson = { Title:title, Author:author, Description:desc, Copyright:copyright, Keywords:keywords, Comment:comment, CreationDate:date };
-                const jsonBlob = new Blob([JSON.stringify(metaJson, null, 2)], { type:'application/json' });
-                downloadBlob(jsonBlob, currentFile.name.replace(/\.[^.]+$,'') + '_metadata.json');
-                // Генерируем команду ExifTool
-                let cmd = 'exiftool ';
-                if (title) cmd += `-Title="${title}" `;
-                if (author) cmd += `-Author="${author}" `;
-                if (desc) cmd += `-Description="${desc}" `;
-                if (copyright) cmd += `-Copyright="${copyright}" `;
-                if (keywords) cmd += `-Keywords="${keywords}" `;
-                if (comment) cmd += `-Comment="${comment}" `;
-                if (date) cmd += `-CreateDate="${date}" `;
-                cmd += `"${currentFile.name}"`;
-                statusDiv.textContent = `⚠️ Для PNG: скачан чистый PNG + JSON. Используй команду:\n${cmd}`;
-            }, mime, quality);
-        }
-    };
-    img.src = currentDataUrl;
-});
-
-function downloadBlob(blob, filename) {
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(link.href);
-}
-
-// ======== КОПИРОВАТЬ JSON ========
-copyBtn.addEventListener('click', () => {
-    if (!currentMeta) {
-        statusDiv.textContent = '❌ Нет метаданных для копирования';
-        return;
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
     }
-    const text = JSON.stringify(currentMeta, null, 2);
-    navigator.clipboard.writeText(text).then(() => {
-        statusDiv.textContent = '✅ Скопировано в буфер (JSON)';
-    }).catch(() => {
-        const area = document.createElement('textarea');
-        area.value = text;
-        document.body.appendChild(area);
-        area.select();
-        document.execCommand('copy');
-        area.remove();
-        statusDiv.textContent = '✅ Скопировано (fallback)';
+
+    // ======== ОТОБРАЖЕНИЕ МЕТА ========
+    function renderMeta(meta) {
+        currentMeta = meta;
+        const keys = Object.keys(meta);
+        const count = keys.length;
+        const size = new Blob([JSON.stringify(meta)]).size;
+        statsBar.innerHTML =
+            '<span style="margin-right:14px;">🧩 Поля: ' + count + '</span>' +
+            '<span>📦 ' + (size/1024).toFixed(2) + ' KB</span>' +
+            '<span style="margin-left:14px;">📷 ' + (meta.Make || meta.Software || meta.Author || meta.Title || '—') + '</span>';
+        let output = '';
+        const sorted = keys.sort();
+        for (const k of sorted) {
+            let v = meta[k];
+            if (typeof v === 'object' && v !== null) {
+                try { v = JSON.stringify(v, null, 2); } catch { v = String(v); }
+            } else if (typeof v === 'string' && v.length > 300) {
+                v = v.substring(0,300) + '…';
+            }
+            output += '<span class="tag">' + k + '</span> : <span class="value">' + v + '</span>\n';
+        }
+        metaOutput.innerHTML = output || '⚠️ Пустые метаданные';
+        statusDiv.textContent = '✅ Найдено ' + count + ' полей. Можешь редактировать и скачать.';
+    }
+
+    // ======== ЗАПОЛНИТЬ ФОРМУ ИЗ МЕТА ========
+    fillFromMetaBtn.addEventListener('click', function() {
+        if (!currentMeta) {
+            statusDiv.textContent = '❌ Нет метаданных для заполнения. Загрузи фото.';
+            return;
+        }
+        const m = currentMeta;
+        if (m.Title) fTitle.value = m.Title;
+        if (m.Author || m.Artist) fAuthor.value = m.Author || m.Artist;
+        if (m.Description) fDesc.value = m.Description;
+        if (m.Copyright) fCopyright.value = m.Copyright;
+        if (m.Keywords) fKeywords.value = m.Keywords;
+        if (m.Comment) fComment.value = m.Comment;
+        if (m.CreateDate || m.DateTime) {
+            const d = (m.CreateDate || m.DateTime).toString();
+            fDate.value = d.replace(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}:\d{2}:\d{2})/, '$1:$2:$3 $4');
+        }
+        statusDiv.textContent = '✅ Поля заполнены из метаданных';
     });
-});
 
-// ======== ОБНОВИТЬ МЕТА ========
-refreshBtn.addEventListener('click', () => {
-    if (!currentFile) { statusDiv.textContent = '❌ Загрузи фото'; return; }
-    readMeta(currentFile);
-});
+    // ======== ЗАПИСЬ МЕТА И СКАЧИВАНИЕ ========
+    writeBtn.addEventListener('click', function() {
+        if (!currentFile || !currentDataUrl) {
+            statusDiv.textContent = '❌ Сначала загрузи фото';
+            return;
+        }
 
-// ======== ОЧИСТИТЬ ========
-clearBtn.addEventListener('click', () => {
-    currentFile = null;
-    currentDataUrl = null;
-    currentMeta = null;
-    previewImg.style.display = 'none';
-    previewImg.src = '';
-    fileName.textContent = 'Файл не выбран';
-    metaOutput.textContent = 'Очищено';
-    statsBar.textContent = '';
-    statusDiv.textContent = 'Готов к работе.';
-    fTitle.value = ''; fAuthor.value = ''; fDesc.value = '';
-    fCopyright.value = ''; fKeywords.value = ''; fComment.value = ''; fDate.value = '';
-    fileInput.value = '';
-});
+        const title = fTitle.value.trim();
+        const author = fAuthor.value.trim();
+        const desc = fDesc.value.trim();
+        const copyright = fCopyright.value.trim();
+        const keywords = fKeywords.value.trim();
+        const comment = fComment.value.trim();
+        const date = fDate.value.trim();
+
+        statusDiv.textContent = '⏳ Генерация...';
+
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            const ext = lastExt;
+            const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+            const quality = ext === 'png' ? 1 : 0.92;
+
+            if (ext === 'jpg' || ext === 'jpeg') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/piexifjs@1.0.4/piexif.min.js';
+                script.onload = function() {
+                    try {
+                        const exif = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
+                        if (title) exif["0th"][piexif.ImageIFD.ImageDescription] = title;
+                        if (author) exif["0th"][piexif.ImageIFD.Artist] = author;
+                        if (desc) exif["Exif"][piexif.ExifIFD.UserComment] = desc;
+                        if (copyright) exif["0th"][piexif.ImageIFD.Copyright] = copyright;
+                        if (keywords) exif["0th"][piexif.ImageIFD.XPKeywords] = keywords;
+                        if (comment) exif["Exif"][piexif.ExifIFD.UserComment] = comment;
+                        if (date) {
+                            exif["0th"][piexif.ImageIFD.DateTime] = date;
+                            exif["Exif"][piexif.ExifIFD.DateTimeOriginal] = date;
+                        }
+                        const exifBytes = piexif.dump(exif);
+                        const jpegData = canvas.toDataURL('image/jpeg', quality);
+                        const binary = atob(jpegData.split(',')[1]);
+                        const array = [];
+                        for (let i=0; i<binary.length; i++) array.push(binary.charCodeAt(i));
+                        const newData = piexif.insert(exifBytes, new Uint8Array(array));
+                        const blob = new Blob([newData], { type: 'image/jpeg' });
+                        downloadBlob(blob, currentFile.name.replace(/\.[^.]+$/, '') + '_meta.jpg');
+                        statusDiv.textContent = '✅ JPEG с метаданными скачан!';
+                    } catch(e) {
+                        statusDiv.textContent = '❌ Ошибка: ' + e.message;
+                    }
+                };
+                script.onerror = function() {
+                    statusDiv.textContent = '⚠️ Не удалось загрузить библиотеку. Скачиваем без мета.';
+                    canvas.toBlob(function(blob) { downloadBlob(blob, currentFile.name); }, mime, quality);
+                };
+                document.head.appendChild(script);
+            } else {
+                // PNG
+                canvas.toBlob(function(blob) {
+                    downloadBlob(blob, currentFile.name.replace(/\.[^.]+$/, '') + '_clean.png');
+                    const metaJson = {
+                        Title: title, Author: author, Description: desc,
+                        Copyright: copyright, Keywords: keywords,
+                        Comment: comment, CreationDate: date
+                    };
+                    const jsonBlob = new Blob([JSON.stringify(metaJson, null, 2)], { type: 'application/json' });
+                    downloadBlob(jsonBlob, currentFile.name.replace(/\.[^.]+$/, '') + '_metadata.json');
+                    let cmd = 'exiftool ';
+                    if (title) cmd += '-Title="' + title + '" ';
+                    if (author) cmd += '-Author="' + author + '" ';
+                    if (desc) cmd += '-Description="' + desc + '" ';
+                    if (copyright) cmd += '-Copyright="' + copyright + '" ';
+                    if (keywords) cmd += '-Keywords="' + keywords + '" ';
+                    if (comment) cmd += '-Comment="' + comment + '" ';
+                    if (date) cmd += '-CreateDate="' + date + '" ';
+                    cmd += '"' + currentFile.name + '"';
+                    statusDiv.textContent = '⚠️ Для PNG: скачан чистый PNG + JSON. Используй команду:\n' + cmd;
+                }, mime, quality);
+            }
+        };
+        img.src = currentDataUrl;
+    });
+
+    function downloadBlob(blob, filename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // ======== КОПИРОВАТЬ JSON ========
+    copyBtn.addEventListener('click', function() {
+        if (!currentMeta) {
+            statusDiv.textContent = '❌ Нет метаданных для копирования';
+            return;
+        }
+        const text = JSON.stringify(currentMeta, null, 2);
+        navigator.clipboard.writeText(text).then(function() {
+            statusDiv.textContent = '✅ Скопировано в буфер (JSON)';
+        }).catch(function() {
+            const area = document.createElement('textarea');
+            area.value = text;
+            document.body.appendChild(area);
+            area.select();
+            document.execCommand('copy');
+            area.remove();
+            statusDiv.textContent = '✅ Скопировано (fallback)';
+        });
+    });
+
+    // ======== ОБНОВИТЬ МЕТА ========
+    refreshBtn.addEventListener('click', function() {
+        if (!currentFile) { statusDiv.textContent = '❌ Загрузи фото'; return; }
+        readMeta(currentFile);
+    });
+
+    // ======== ОЧИСТИТЬ ========
+    clearBtn.addEventListener('click', function() {
+        currentFile = null;
+        currentDataUrl = null;
+        currentMeta = null;
+        previewImg.style.display = 'none';
+        previewImg.src = '';
+        fileName.textContent = 'Файл не выбран';
+        metaOutput.textContent = 'Очищено';
+        statsBar.textContent = '';
+        statusDiv.textContent = 'Готов к работе.';
+        fTitle.value = ''; fAuthor.value = ''; fDesc.value = '';
+        fCopyright.value = ''; fKeywords.value = ''; fComment.value = ''; fDate.value = '';
+        fileInput.value = '';
+    });
+})();
 </script>
 </body>
 </html>
